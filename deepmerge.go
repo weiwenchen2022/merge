@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 	"unsafe"
 )
 
@@ -23,10 +24,15 @@ type visit struct {
 	typ reflect.Type
 }
 
+func stack() string {
+	var buf [2 << 10]byte
+	return string(buf[:runtime.Stack(buf[:], false)])
+}
+
 // Merges for deep merge using reflected types. The map argument tracks
 // comparisons that have already been seen, which allows short circuiting on
 // recursive types.
-func deepValueMerge(path string, dst, src reflect.Value, visited map[visit]bool, c *Config) error {
+func deepValueMerge(path string, dst, src reflect.Value, visited map[visit]string, c *Config) error {
 	debugf("deepValueMerge %q\n", path)
 
 	if !dst.IsValid() || !src.IsValid() {
@@ -75,15 +81,15 @@ func deepValueMerge(path string, dst, src reflect.Value, visited map[visit]bool,
 		// Short circuit if references are already seen.
 		typ := src.Type()
 		v := visit{addr, typ}
-		if visited[v] {
-			debugln("cycle struct")
+		if visited[v] != "" {
+			debugln("cycle traverses. conflicts are:\nA) " + visited[v] + "\n\nand\nB) " + stack())
 			// shallow merge
 			dst.Set(src)
 			return nil
 		}
 
 		// Remember for later.
-		visited[v] = true
+		visited[v] = stack()
 	}
 
 	if fn := c.transformers[dst.Type()]; fn.IsValid() {
@@ -104,7 +110,9 @@ func deepValueMerge(path string, dst, src reflect.Value, visited map[visit]bool,
 		return nil
 	case reflect.Slice:
 		if dst.Len() == 0 && (src.Len() == 0 && c.overwriteEmptySlice) {
-			dst.Set(src)
+			if dst.IsNil() != src.IsNil() {
+				dst.Set(src)
+			}
 			return nil
 		}
 		if c.appendSlice {
@@ -121,6 +129,7 @@ func deepValueMerge(path string, dst, src reflect.Value, visited map[visit]bool,
 				dst.Set(s)
 			}
 		}
+
 		if dst.UnsafePointer() == src.UnsafePointer() {
 			return nil
 		}
@@ -248,11 +257,8 @@ func deepValueMerge(path string, dst, src reflect.Value, visited map[visit]bool,
 				v := reflect.New(val1.Type()).Elem()
 				v.SetZero()
 				val2 = v
-				debugf("add map key %#v -> %#v\n", k, val1)
-
-			}
-
-			{
+				debugf("add map key (%#v, %#v)\n", k, val1)
+			} else {
 				val := reflect.New(val2.Type()).Elem()
 				val.Set(val2)
 				val2 = val
@@ -280,7 +286,7 @@ func deepValueMerge(path string, dst, src reflect.Value, visited map[visit]bool,
 
 	// Normal merge suffices
 	if (dst.IsZero() || c.overwrite) && (!src.IsZero() || c.overwriteWithEmptyValue) {
-		debugf("%q %#v -> %#v\n", path, dst, src)
+		debugf("%q %#v <- %#v\n", path, dst, src)
 		dst.Set(src)
 	}
 	return nil
@@ -292,7 +298,7 @@ func deepValueMerge(path string, dst, src reflect.Value, visited map[visit]bool,
 //
 // Array values deeply merge their corresponding elements.
 //
-// Struct values deeply merge if their corresponding exported fields.
+// Struct values deeply merge their corresponding exported fields.
 //
 // Func values deeply merge if dst is nil and src is not; otherwise they not deeply merge.
 //
@@ -367,8 +373,7 @@ func DeepMerge(dst, src any, opts ...Option) error {
 	}
 
 	var c Config
-	for _, opt := range opts {
-		opt.apply(&c)
-	}
-	return deepValueMerge("", vdst, vsrc, make(map[visit]bool), &c)
+	Options(opts).apply(&c)
+
+	return deepValueMerge("", vdst, vsrc, make(map[visit]string), &c)
 }

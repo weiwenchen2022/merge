@@ -26,21 +26,25 @@ func TestIssue17MergeWithOverwrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testDeepMerge(t, test{
+	test := test{
 		dst: dst,
 		src: map[string]any{
 			"timestamp": nil,
 			"name":      "bar",
 			"newStuff":  "foo",
 		},
-		mergeopts: Options{WithOverwrite()},
+		mergeOpts: Options{WithOverwrite()},
 
 		want: map[string]any{
 			"timestamp": nil,
 			"name":      "bar",
 			"newStuff":  "foo",
 		},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue23MergeWithOverwrite(t *testing.T) {
@@ -51,12 +55,16 @@ func TestIssue23MergeWithOverwrite(t *testing.T) {
 	now := time.Now()
 	created := time.Unix(1136214245, 0)
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &T{now},
 		src:       T{created},
-		mergeopts: Options{WithOverwrite()},
+		mergeOpts: Options{WithOverwrite()},
 		want:      &T{created},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue33Merge(t *testing.T) {
@@ -67,7 +75,7 @@ func TestIssue33Merge(t *testing.T) {
 		B []int
 	}
 
-	testDeepMerge(t, []test{
+	tests := []test{
 		{
 			dst: &T{A: "foo"},
 			src: T{"bar", []int{1, 2, 3}},
@@ -80,10 +88,14 @@ func TestIssue33Merge(t *testing.T) {
 			src: T{"bar", []int{1, 2, 3}},
 
 			// If we want to override, we must use DeepMerge with WithOverwrite.
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want:      &T{"bar", []int{1, 2, 3}},
 		},
-	}...)
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, tests...) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, tests...) })
 }
 
 func TestIssue38Merge(t *testing.T) {
@@ -94,7 +106,7 @@ func TestIssue38Merge(t *testing.T) {
 	now := time.Now()
 	created := time.Unix(1136214245, 0)
 
-	testDeepMerge(t, []test{
+	tests := []test{
 		{
 			dst:  &T{now},
 			src:  T{created},
@@ -110,10 +122,14 @@ func TestIssue38Merge(t *testing.T) {
 			name:      "WithOverwrite",
 			dst:       &T{now},
 			src:       T{created},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want:      &T{created},
 		},
-	}...)
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, tests...) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, tests...) })
 }
 
 func TestOverwriteZeroSrcTime(t *testing.T) {
@@ -122,13 +138,17 @@ func TestOverwriteZeroSrcTime(t *testing.T) {
 	type T struct{ Created time.Time }
 	now := time.Now()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &T{now},
 		src:       T{},
-		mergeopts: Options{WithOverwrite()},
+		mergeOpts: Options{WithOverwrite()},
 
 		want: &T{now},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func timeTransformer(overwrite bool) func(*time.Time, time.Time) error {
@@ -152,12 +172,16 @@ func TestOverwriteZeroSrcTimeWithTransformer(t *testing.T) {
 	type T struct{ Created time.Time }
 	now := time.Now()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &T{now},
 		src:       T{},
-		mergeopts: Options{WithOverwrite(), WithTransformer(timeTransformer(true))},
+		mergeOpts: Options{WithOverwrite(), WithTransformer(timeTransformer(true))},
 		want:      &T{now},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestZeroDstTime(t *testing.T) {
@@ -166,11 +190,15 @@ func TestZeroDstTime(t *testing.T) {
 	type T struct{ Created time.Time }
 	now := time.Now()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:  &T{},
 		src:  T{now},
 		want: &T{now},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestZeroDstTimeWithTransformer(t *testing.T) {
@@ -179,12 +207,16 @@ func TestZeroDstTimeWithTransformer(t *testing.T) {
 	type T struct{ Created time.Time }
 	now := time.Now()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &T{},
 		src:       T{now},
-		mergeopts: Options{WithTransformer(timeTransformer(false))},
+		mergeOpts: Options{WithTransformer(timeTransformer(false))},
 		want:      &T{now},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue61MergeNilMap(t *testing.T) {
@@ -193,56 +225,61 @@ func TestIssue61MergeNilMap(t *testing.T) {
 	type T struct {
 		M map[string][]int
 	}
-
 	var (
-		dst = T{}
+		dst T
 		src = T{map[string][]int{"foo": {1, 2, 3}}}
 	)
-
-	testDeepMerge(t, test{
+	test := test{
 		dst:  &dst,
 		src:  src,
 		want: &src,
-	})
-	if fmt.Sprintf("%p", src.M["foo"]) == fmt.Sprintf("%p", dst.M["foo"]) {
-		t.Error("dst and src slice shared underlying array")
+		check: func(t testing.TB, a any) {
+			dst := a.(*T)
+			if fmt.Sprintf("%p", src.M["foo"]) == fmt.Sprintf("%p", dst.M["foo"]) {
+				t.Error("dst and src slice shared underlying array")
+			}
+		},
 	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue64MergeSliceWithOverride(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, []test{
+	tests := []test{
 		{
 			dst:       New([]string{"bar"}),
 			src:       []string{"foo", "bar"},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want:      New([]string{"foo", "bar"}),
 		},
 
 		{
 			dst:       New([]string(nil)),
 			src:       []string{"foo", "bar"},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want:      New([]string{"foo", "bar"}),
 		},
 		{
 			dst:       New([]string{}),
 			src:       []string{"foo", "bar"},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want:      New([]string{"foo", "bar"}),
 		},
 
 		{
 			dst:       New([]string{"foo"}),
 			src:       []string(nil),
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want:      New([]string{"foo"}),
 		},
 		{
 			dst:       New([]string{"foo"}),
 			src:       []string{},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want:      New([]string{"foo"}),
 		},
 
@@ -256,7 +293,11 @@ func TestIssue64MergeSliceWithOverride(t *testing.T) {
 			src:  []string(nil),
 			want: New([]string{}),
 		},
-	}...)
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, tests...) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, tests...) })
 }
 
 func TestPrivateSliceWithOverwrite(t *testing.T) {
@@ -267,7 +308,7 @@ func TestPrivateSliceWithOverwrite(t *testing.T) {
 		s []string
 	}
 
-	testDeepMerge(t, test{
+	test := test{
 		dst: &T{
 			[]string{"foo", "bar"},
 			[]string{"a", "b", "c"},
@@ -276,14 +317,18 @@ func TestPrivateSliceWithOverwrite(t *testing.T) {
 			[]string{"FOO", "BAR"},
 			[]string{"A", "B", "C"},
 		},
-		mergeopts: Options{WithOverwrite()},
+		mergeOpts: Options{WithOverwrite()},
 
 		want: &T{
 			[]string{"FOO", "BAR"},
 			[]string{"a", "b", "c"},
 		},
-		cmpopts: cmp.Options{cmp.AllowUnexported(T{})},
-	})
+		cmpOpts: cmp.Options{cmp.AllowUnexported(T{})},
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestPrivateSliceWithAppendSlice(t *testing.T) {
@@ -293,8 +338,7 @@ func TestPrivateSliceWithAppendSlice(t *testing.T) {
 		S []string
 		s []string
 	}
-
-	testDeepMerge(t, test{
+	test := test{
 		dst: &T{
 			[]string{"foo", "bar"},
 			[]string{"a", "b", "c"},
@@ -303,82 +347,105 @@ func TestPrivateSliceWithAppendSlice(t *testing.T) {
 			[]string{"FOO", "BAR"},
 			[]string{"A", "B", "C"},
 		},
-		mergeopts: Options{WithAppendSlice()},
+		mergeOpts: Options{WithAppendSlice()},
 
 		want: &T{
 			[]string{"foo", "bar", "FOO", "BAR"},
 			[]string{"a", "b", "c"},
 		},
-		cmpopts: cmp.Options{cmp.AllowUnexported(T{})},
-	})
+		cmpOpts: cmp.Options{cmp.AllowUnexported(T{})},
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue83(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:       New([]string{"foo", "bar"}),
 		src:       []string(nil),
-		mergeopts: Options{WithOverwriteWithEmptyValue()},
+		mergeOpts: Options{WithOverwriteWithEmptyValue()},
 		want:      New([]string{"", ""}),
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue89Boolean(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:  New(false),
 		src:  true,
 		want: New(true),
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue89MergeWithEmptyValue(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:       map[string]any{"A": 3, "B": "note", "C": true},
 		src:       map[string]any{"B": "", "C": false},
-		mergeopts: Options{WithOverwriteWithEmptyValue()},
+		mergeOpts: Options{WithOverwriteWithEmptyValue()},
 		want:      map[string]any{"B": "", "C": false},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue90(t *testing.T) {
 	t.Parallel()
 
 	type T struct{ M map[string][]int }
-
-	testDeepMerge(t, test{
+	test := test{
 		dst:  map[string]T{"foo": {}},
 		src:  map[string]T{"foo": {map[string][]int{"foo": {1, 2, 3}}}},
 		want: map[string]T{"foo": {map[string][]int{"foo": {1, 2, 3}}}},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue121WithWithOverwrite(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst: map[string]any{
 			"inner": map[string]any{"a": 1, "b": 2},
 		},
 		src: map[string]any{
 			"inner": map[string]any{"a": 3, "c": 4},
 		},
-		mergeopts: Options{WithOverwrite()},
+		mergeOpts: Options{WithOverwrite()},
 
 		want: map[string]any{
 			"inner": map[string]any{"a": 3, "b": 2, "c": 4},
 		},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue123(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst: map[string]any{
 			"a": 1,
 			"b": 3,
@@ -389,41 +456,49 @@ func TestIssue123(t *testing.T) {
 			"b": 4,
 			"c": nil,
 		},
-		mergeopts: Options{WithOverwrite()},
+		mergeOpts: Options{WithOverwrite()},
 
 		want: map[string]any{
 			"a": 1,
 			"b": 4,
 			"c": 3,
 		},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue125MergeWithOverwriteEmptySlice(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, []test{
+	tests := []test{
 		{
 			dst:       New([]int{}),
 			src:       []int(nil),
-			mergeopts: Options{WithOverwriteEmptySlice()},
+			mergeOpts: Options{WithOverwriteEmptySlice()},
 
 			want: New([]int(nil)),
 		},
 		{
 			dst:       New([]int(nil)),
 			src:       []int{},
-			mergeopts: Options{WithOverwriteEmptySlice()},
+			mergeOpts: Options{WithOverwriteEmptySlice()},
 
 			want: New([]int{}),
 		},
-	}...)
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, tests...) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, tests...) })
 }
 
 func TestIssue129Boolean(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, []test{
+	tests := []test{
 		{
 			// Standard behavior
 			dst:  New(true),
@@ -434,10 +509,14 @@ func TestIssue129Boolean(t *testing.T) {
 			// Expected behavior
 			dst:       New(true),
 			src:       false,
-			mergeopts: Options{WithOverwriteWithEmptyValue()},
+			mergeOpts: Options{WithOverwriteWithEmptyValue()},
 			want:      New(false),
 		},
-	}...)
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, tests...) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, tests...) })
 }
 
 func TestIssue131MergeWithOverwriteWithEmptyValue(t *testing.T) {
@@ -447,13 +526,16 @@ func TestIssue131MergeWithOverwriteWithEmptyValue(t *testing.T) {
 		A *bool
 		B string
 	}
-
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &T{New(true), "foo"},
 		src:       T{New(false), "bar"},
-		mergeopts: Options{WithOverwriteWithEmptyValue()},
+		mergeOpts: Options{WithOverwriteWithEmptyValue()},
 		want:      &T{New(false), "bar"},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue131MergeWithoutDereferenceWithOverride(t *testing.T) {
@@ -466,22 +548,27 @@ func TestIssue131MergeWithoutDereferenceWithOverride(t *testing.T) {
 		D *bool
 		E *bool
 	}
-
 	var (
 		dst = T{New(true), "foo", New(false), nil, New(false)}
 		src = T{New(false), "bar", nil, New(false), New(true)}
 	)
-
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &dst,
 		src:       src,
-		mergeopts: Options{WithOverwrite(), WithoutDereference()},
+		mergeOpts: Options{WithOverwrite(), WithoutDereference()},
 
 		want: &T{New(false), "bar", New(false), New(false), New(true)},
-	})
-	if src.A != dst.A || src.C == dst.C || src.D != dst.D || src.E != dst.E {
-		t.Error("pointer values not merged in properly")
+		check: func(t testing.TB, a any) {
+			dst := a.(*T)
+			if src.A != dst.A || src.C == dst.C || src.D != dst.D || src.E != dst.E {
+				t.Error("pointer values not merged in properly")
+			}
+		},
 	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue131MergeWithoutDereference(t *testing.T) {
@@ -494,21 +581,26 @@ func TestIssue131MergeWithoutDereference(t *testing.T) {
 		D *bool
 		E *bool
 	}
-
 	var (
 		dst = T{New(true), "foo", New(false), nil, New(false)}
 		src = T{New(false), "bar", nil, New(false), New(true)}
 	)
-
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &dst,
 		src:       src,
-		mergeopts: Options{WithoutDereference()},
+		mergeOpts: Options{WithoutDereference()},
 		want:      &T{New(true), "foo", New(false), New(false), New(false)},
-	})
-	if src.A == dst.A || src.C == dst.C || src.D != dst.D || src.E == dst.E {
-		t.Error("pointer valuse not merged in properly")
+		check: func(t testing.TB, a any) {
+			dst := a.(*T)
+			if src.A == dst.A || src.C == dst.C || src.D != dst.D || src.E == dst.E {
+				t.Error("pointer valuse not merged in properly")
+			}
+		},
 	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestMergeEmbedded(t *testing.T) {
@@ -522,16 +614,19 @@ func TestMergeEmbedded(t *testing.T) {
 		A string
 		embeddedTest
 	}
-
 	var (
 		dst embeddingTest
 		src = embeddedTest{"foo", 23}
 	)
-	testDeepMerge(t, test{
+	test := test{
 		dst:  &dst.embeddedTest,
 		src:  src,
 		want: &src,
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue149(t *testing.T) {
@@ -543,14 +638,17 @@ func TestIssue149(t *testing.T) {
 		T *T
 		B *string
 	}
-
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &T1{&T{"foo"}, nil},
 		src:       &T1{nil, New("bar")},
-		mergeopts: Options{WithOverwriteWithEmptyValue()},
+		mergeOpts: Options{WithOverwriteWithEmptyValue()},
 
 		want: &T1{&T{}, New("bar")},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue174(t *testing.T) {
@@ -560,12 +658,15 @@ func TestIssue174(t *testing.T) {
 		_ int
 		A int
 	}
-
-	testDeepMerge(t, test{
+	test := test{
 		dst:  &T{},
 		src:  T{0, 23},
 		want: &T{0, 23},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue202(t *testing.T) {
@@ -582,7 +683,7 @@ func TestIssue202(t *testing.T) {
 				"foo": "123",
 				"bar": []int{1, 2, 3},
 			},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 
 			want: map[string]any{
 				"foo": "123",
@@ -599,7 +700,7 @@ func TestIssue202(t *testing.T) {
 				"foo": "123",
 				"bar": "456",
 			},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 
 			want: map[string]any{
 				"foo": "123",
@@ -618,7 +719,7 @@ func TestIssue202(t *testing.T) {
 					"bar": true,
 				},
 			},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 
 			want: map[string]any{
 				"foo": "123",
@@ -639,7 +740,7 @@ func TestIssue202(t *testing.T) {
 				"foo": "123",
 				"bar": "456",
 			},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want: map[string]any{
 				"foo": "123",
 				"bar": "456",
@@ -659,7 +760,7 @@ func TestIssue202(t *testing.T) {
 					"bar": "456",
 				},
 			},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 
 			want: map[string]any{
 				"foo": "123",
@@ -683,7 +784,7 @@ func TestIssue202(t *testing.T) {
 					"a": true,
 				},
 			},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 
 			want: map[string]any{
 				"foo": "123",
@@ -694,30 +795,41 @@ func TestIssue202(t *testing.T) {
 			},
 		},
 	}
-	testDeepMerge(t, tests...)
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, tests...) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, tests...) })
 }
 
 func TestIssue209(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &[]int{1, 2, 3},
 		src:       []int{4, 5},
-		mergeopts: Options{WithAppendSlice()},
+		mergeOpts: Options{WithAppendSlice()},
 		want:      &[]int{1, 2, 3, 4, 5},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestIssue220(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:       []any{map[string][]int{"foo": {1, 2, 3}}},
 		src:       []any{"bar"},
-		mergeopts: Options{WithoutDereference()},
+		mergeOpts: Options{WithoutDereference()},
 
 		want: []any{map[string][]int{"foo": {1, 2, 3}}},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestMergeMapWithOverwrite(t *testing.T) {
@@ -727,43 +839,46 @@ func TestMergeMapWithOverwrite(t *testing.T) {
 		{
 			dst:       map[string]int{"a": 1, "b": 2},
 			src:       map[string]int{"a": 1, "c": 3},
-			mergeopts: Options{WithOverwriteWithEmptyValue()},
+			mergeOpts: Options{WithOverwriteWithEmptyValue()},
 			want:      map[string]int{"a": 1, "c": 3},
 		},
 		{
 			dst:       map[string]int{"a": 1, "b": 2},
 			src:       map[string]int{"a": 1, "c": 3},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want:      map[string]int{"a": 1, "b": 2, "c": 3},
 		},
 
 		{
 			dst:       map[string]int{"a": 1, "b": 2},
 			src:       map[string]int{},
-			mergeopts: Options{WithOverwriteWithEmptyValue()},
+			mergeOpts: Options{WithOverwriteWithEmptyValue()},
 			want:      map[string]int{},
 		},
 		{
 			dst:       map[string]int{"a": 1, "b": 2},
 			src:       map[string]int(nil),
-			mergeopts: Options{WithOverwriteWithEmptyValue()},
+			mergeOpts: Options{WithOverwriteWithEmptyValue()},
 			want:      map[string]int{},
 		},
 
 		{
 			dst:       map[string]int{"a": 1, "b": 2},
 			src:       map[string]int{},
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want:      map[string]int{"a": 1, "b": 2},
 		},
 		{
 			dst:       map[string]int{"a": 1, "b": 2},
 			src:       map[string]int(nil),
-			mergeopts: Options{WithOverwrite()},
+			mergeOpts: Options{WithOverwrite()},
 			want:      map[string]int{"a": 1, "b": 2},
 		},
 	}
-	testDeepMerge(t, tests...)
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, tests...) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, tests...) })
 }
 
 func TestMergeSliceWithOverrideWithAppendSlice(t *testing.T) {
@@ -773,68 +888,74 @@ func TestMergeSliceWithOverrideWithAppendSlice(t *testing.T) {
 		{
 			dst:       &[]int{1, 2, 3},
 			src:       []int{4, 5},
-			mergeopts: Options{WithOverwrite(), WithAppendSlice()},
+			mergeOpts: Options{WithOverwrite(), WithAppendSlice()},
 			want:      &[]int{1, 2, 3, 4, 5},
 		},
 		{
 			dst:       New([]int(nil)),
 			src:       []int{4, 5},
-			mergeopts: Options{WithOverwrite(), WithAppendSlice()},
+			mergeOpts: Options{WithOverwrite(), WithAppendSlice()},
 			want:      &[]int{4, 5},
 		},
 		{
 			dst:       &[]int{},
 			src:       []int{4, 5},
-			mergeopts: Options{WithOverwrite(), WithAppendSlice()},
+			mergeOpts: Options{WithOverwrite(), WithAppendSlice()},
 			want:      &[]int{4, 5},
 		},
 		{
 
 			dst:       &[]int{1, 2, 3},
 			src:       []int{},
-			mergeopts: Options{WithOverwrite(), WithAppendSlice()},
+			mergeOpts: Options{WithOverwrite(), WithAppendSlice()},
 			want:      &[]int{1, 2, 3},
 		},
 		{
 
 			dst:       &[]int{1, 2, 3},
 			src:       []int(nil),
-			mergeopts: Options{WithOverwrite(), WithAppendSlice()},
+			mergeOpts: Options{WithOverwrite(), WithAppendSlice()},
 			want:      &[]int{1, 2, 3},
 		},
 
 		{
 			dst:       &[]int{},
 			src:       []int{},
-			mergeopts: Options{WithOverwrite(), WithAppendSlice()},
+			mergeOpts: Options{WithOverwrite(), WithAppendSlice()},
 			want:      &[]int{},
 		},
 		{
 			dst:       New([]int(nil)),
 			src:       []int{},
-			mergeopts: Options{WithOverwrite(), WithAppendSlice()},
+			mergeOpts: Options{WithOverwrite(), WithAppendSlice()},
 			want:      New([]int(nil)),
 		},
 	}
-	testDeepMerge(t, tests...)
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, tests...) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, tests...) })
 }
 
 func TestMergeMapEmptyString(t *testing.T) {
 	t.Parallel()
 
 	type M map[string]any
-
-	testDeepMerge(t, test{
+	test := test{
 		dst:  M{"foo": ""},
 		src:  M{"foo": "bar"},
 		want: M{"foo": "bar"},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestMapInterfaceWithMultipleLayer(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst: map[string]any{
 			"k1": map[string]any{
 				"k1.1": "v1",
@@ -846,7 +967,7 @@ func TestMapInterfaceWithMultipleLayer(t *testing.T) {
 				"k1.2": "v3",
 			},
 		},
-		mergeopts: Options{WithOverwrite()},
+		mergeOpts: Options{WithOverwrite()},
 
 		want: map[string]any{
 			"k1": map[string]any{
@@ -854,18 +975,39 @@ func TestMapInterfaceWithMultipleLayer(t *testing.T) {
 				"k1.2": "v3",
 			},
 		},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func Test_deepValueMergeTransformerInvalidDestination(t *testing.T) {
 	t.Parallel()
 
-	DeepValueMerge(reflect.Value{}, reflect.ValueOf(time.Now()), WithTransformer(func(dst *time.Time, src time.Time) error {
-		return nil
-	}))
 	// this test is intentionally not asserting on anything, it's sole
 	// purpose to verify deepValueMerge doesn't panic when a transformer is
 	// passed and the destination is invalid.
+	f := func(dst *time.Time, src time.Time) error {
+		return nil
+	}
+	t.Run("Merge", func(t *testing.T) {
+		t.Cleanup(func() {
+			if recover() != nil {
+				t.Error("unexpected panicked")
+			}
+		})
+		DeepValueMerge(reflect.Value{}, reflect.ValueOf(time.Now()), WithTransformer(f))
+	})
+
+	t.Run("Map", func(t *testing.T) {
+		t.Cleanup(func() {
+			if recover() != nil {
+				t.Error("unexpected panicked")
+			}
+		})
+		DeepValueMap(reflect.Value{}, reflect.ValueOf(time.Now()), WithTransformer(f))
+	})
 }
 
 func TestMergeWithTransformerZeroValue(t *testing.T) {
@@ -873,14 +1015,18 @@ func TestMergeWithTransformerZeroValue(t *testing.T) {
 
 	// This test specifically tests that a transformer can be used to
 	// prevent overwriting a zero value (in this case a bool). This would fail prior to #211
-	testDeepMerge(t, test{
+	test := test{
 		dst: New(false),
 		src: true,
-		mergeopts: Options{WithTransformer(func(*bool, bool) error {
+		mergeOpts: Options{WithTransformer(func(*bool, bool) error {
 			return nil
 		})},
 		want: New(false),
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestV039Issue139(t *testing.T) {
@@ -891,15 +1037,18 @@ func TestV039Issue139(t *testing.T) {
 		inner
 		B int
 	}
-
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &outer{inner{1}, 2},
 		src:       outer{inner{10}, 20},
-		mergeopts: Options{WithOverwrite()},
+		mergeOpts: Options{WithOverwrite()},
 
 		want:    &outer{inner{10}, 20},
-		cmpopts: cmp.Options{cmp.AllowUnexported(outer{})},
-	})
+		cmpOpts: cmp.Options{cmp.AllowUnexported(outer{})},
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestV039Issue146(t *testing.T) {
@@ -910,16 +1059,18 @@ func TestV039Issue146(t *testing.T) {
 		A string
 		B map[string]Bar
 	}
-
 	var s1, s2 = "asd", "sdf"
 	dst := Foo{"bar", map[string]Bar{"foo": {&s1, nil}}}
 	src := Foo{"foo", map[string]Bar{"foo": {nil, &s2}}}
-
-	testDeepMerge(t, test{
+	test := test{
 		dst:       &dst,
 		src:       src,
-		mergeopts: Options{WithOverwrite()},
+		mergeOpts: Options{WithOverwrite()},
 
 		want: &Foo{"foo", map[string]Bar{"foo": {&s1, &s2}}},
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }

@@ -14,13 +14,19 @@ type Config struct {
 	transformers map[reflect.Type]reflect.Value
 }
 
-// Option configures for specific behavior of DeepMerge.
+// Option configures for specific behavior of DeepMerge and DeepMap.
 type Option interface {
 	apply(c *Config)
 }
 
 // Options is a list of Option values that also satisfies the Option interface.
 type Options []Option
+
+func (opts Options) apply(c *Config) {
+	for _, opt := range opts {
+		opt.apply(c)
+	}
+}
 
 type option func(*Config)
 

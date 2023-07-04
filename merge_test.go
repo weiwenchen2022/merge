@@ -24,37 +24,48 @@ func TestMergeWithTransformerNilStruct(t *testing.T) {
 		a string
 		T *T
 	}
-
-	testDeepMerge(t, test{
+	test := test{
 		dst: &T2{a: "foo"},
 		src: T2{T: &T{23, map[string]int{"foo": 23}}},
-		mergeopts: Options{WithOverwrite(), WithTransformer(func(dst **T, src *T) error {
+		mergeOpts: Options{WithOverwrite(), WithTransformer(func(dst **T, src *T) error {
 			*dst = New(*src)
 			t.Log((*dst).a)
 			t.Log(*src)
 			return nil
 		})},
 		want:    &T2{"foo", &T{23, map[string]int{"foo": 23}}},
-		cmpopts: cmp.Options{cmp.AllowUnexported(T2{}, T{})},
-	})
+		cmpOpts: cmp.Options{cmp.AllowUnexported(T2{}, T{})},
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestMergeNonPointer(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:     T{},
 		src:     T{42},
 		wantErr: true,
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
 
 func TestMapNonPointer(t *testing.T) {
 	t.Parallel()
 
-	testDeepMerge(t, test{
+	test := test{
 		dst:     map[string]T(nil),
 		src:     map[string]T{"foo": {42}},
 		wantErr: true,
-	})
+	}
+
+	t.Run("Merge", func(t *testing.T) { testDeepMerge(t, test) })
+
+	t.Run("Map", func(t *testing.T) { testDeepMap(t, test) })
 }
